@@ -1,0 +1,31 @@
+[
+    {
+        "nombre": "BLANCO",
+        "clasificacion": "Estandar",
+        "hex": "",
+        "activo": true
+    },
+    {
+        "nombre": "GALES",
+        "clasificacion": "Estandar",
+        "hex": "",
+        "activo": true
+    },
+    {
+        "nombre": "NEGRO",
+        "clasificacion": "Especial",
+        "hex": "",
+        "activo": true
+    },
+    {
+        "nombre": "EXPRESSO",
+        "clasificacion": "Especial",
+        "hex": "",
+        "activo": true
+    },
+    {
+        "nombre": "ROVERE",
+        "clasificacion": "Estandar",
+        "activo": true
+    }
+]

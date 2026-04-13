@@ -1,0 +1,24 @@
+[
+    {
+        "nombre": "MESA DE REUNIONES",
+        "largo_min": "1000",
+        "largo_max": "2000",
+        "ancho_min": "500",
+        "ancho_max": "800",
+        "alto_min": "700",
+        "alto_max": "900",
+        "accesorios": "TAPA HOME",
+        "activo": true
+    },
+    {
+        "nombre": "ESCRITORIO RECTO",
+        "largo_min": "1000",
+        "largo_max": "2000",
+        "ancho_min": "500",
+        "ancho_max": "800",
+        "alto_min": "715",
+        "alto_max": "900",
+        "accesorios": "TAPA ABATIBLE",
+        "activo": true
+    }
+]

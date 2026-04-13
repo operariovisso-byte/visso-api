@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>VISSO PEDIDOS</h2>
+    <button class="tab active" data-tab="pedidos">Pedidos</button>
+    <button class="tab" data-tab="productos">Productos</button>
+    <button class="tab" data-tab="colores">Colores</button>
+    <button class="tab" data-tab="control">Control</button>
+</div>
+
+<div class="main">
+
+<!-- PEDIDOS -->
+<div id="pedidos" class="contenido">
+
+    <div class="productos">
+        {% for p in productos %}
+            {% if p.activo %}
+            <div class="card">
+                <h3>{{p.nombre}}</h3>
+                <p>{{p.tipo}}</p>
+                <button class="btn-agregar" data-index="{{ loop.index0 }}">➕</button>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- CONTROL -->
+<div id="control" class="contenido" style="display:none;">
+    <h2>📊 Control de Producción</h2>
+    <div id="controlPedidos" class="grid-control"></div>
+</div>
+
+<!-- PRODUCTOS -->
+<div id="productos" class="contenido" style="display:none;">
+
+    <button class="btn-agregar-producto" onclick="abrirModalProducto()">
+        + Agregar Producto
+    </button>
+
+    <div class="productos">
+        {% for p in productos %}
+        <div class="card {% if not p.activo %}inactivo{% endif %}">
+            <h3>{{p.nombre}}</h3>
+            <p>{{p.tipo}}</p>
+
+            <button onclick="location.href='/toggle_producto/{{loop.index0}}'">🔄</button>
+            <button onclick="location.href='/eliminar_producto/{{loop.index0}}'">🗑</button>
+            <button class="btn-editar" data-index="{{loop.index0}}">✏️</button>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- COLORES -->
+<div id="colores" class="contenido" style="display:none;">
+
+    <button class="btn-agregar-producto" onclick="abrirModalColor()">
+        + Agregar Color
+    </button>
+
+    <div class="productos">
+        {% for c in colores %}
+        <div class="card 
+            {% if not c.activo %}inactivo{% endif %}
+            {% if c.clasificacion == 'Especial' %}color-especial{% endif %}
+        ">
+            {% if c.clasificacion == 'Especial' %}
+                <span class="badge-especial">Especial</span>
+            {% endif %}
+
+            <h3>{{c.nombre}}</h3>
+            <p>{{c.clasificacion}}</p>
+
+            <button onclick="location.href='/toggle_color/{{loop.index0}}'">🔄</button>
+            <button onclick="location.href='/eliminar_color/{{loop.index0}}'">🗑</button>
+            <button class="btn-editar-color" data-index="{{loop.index0}}">✏️</button>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+</div>
+
+<!-- CARRITO -->
+<div class="carrito">
+    <h2>Pedido</h2>
+    <div id="carrito"></div>
+
+    <button id="btnFinalizar" onclick="abrirModalFinal()">Finalizar Pedido</button>
+
+    <h3>Historial</h3>
+    <ul id="historial"></ul>
+</div>
+
+<!-- MODAL PRODUCTO (🔥 SIN COLORES) -->
+<div id="modalProducto" class="modal">
+    <div class="modal-content">
+        <h3>Nuevo Producto</h3>
+
+        <form action="/agregar_producto" method="POST">
+            <input name="nombre" placeholder="Nombre" required>
+            <div class="fila-medida">
+                <input name="largo_min" placeholder="Largo mín">
+                <input name="largo_max" placeholder="Largo máx">
+            </div>
+
+            <div class="fila-medida">
+                <input name="ancho_min" placeholder="Ancho mín">
+                <input name="ancho_max" placeholder="Ancho máx">
+            </div>
+
+            <div class="fila-medida">
+                <input name="alto_min" placeholder="Alto mín">
+                <input name="alto_max" placeholder="Alto máx">
+            </div>
+            <input name="accesorios" placeholder="Accesorios">
+
+            <button type="submit">Guardar</button>
+        </form>
+
+        <button onclick="cerrarModalProducto()">Cancelar</button>
+    </div>
+</div>
+
+<div id="modalEntrega" class="modal">
+    <div class="modal-content">
+        <h3>📅 Programar Entrega</h3>
+
+        <label>Tipo de Pedido</label>
+        <select id="tipoEntrega">
+            <option value="normal">Normal</option>
+            <option value="express">Express</option>
+        </select>
+
+        <label>Fecha de entrega</label>
+        <input type="date" id="fechaEntrega">
+
+        <div id="previewFecha"></div>
+
+        <button onclick="confirmarEntrega()">Confirmar</button>
+    </div>
+</div>
+
+<!-- MODAL COLOR -->
+<div id="modalColor" class="modal">
+    <div class="modal-content">
+        <h3>Nuevo Color</h3>
+
+        <form action="/agregar_color" method="POST">
+            <input name="nombre" placeholder="Nombre del color" required>
+            <select name="clasificacion">
+                <option value="Estandar">Estandar</option>
+                <option value="Especial">Especial</option>
+            </select>
+
+            <button type="submit">Guardar</button>
+        </form>
+
+        <button onclick="cerrarModalColor()">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL CONFIG PRODUCTO -->
+<div id="modalConfig" class="modal">
+    <div class="modal-content">
+        <h3 id="tituloProducto"></h3>
+
+        <label>Color tablero</label>
+        <select id="c_tablero" class="select-color"></select>
+
+        <label>Color estructura</label>
+        <select id="c_estructura" class="select-color"></select>
+
+        <label>Largo</label>
+        <div>
+            <div class="fila-config">
+                <select id="largoSelect"></select>
+                <button type="button" onclick="activarEspecial('largo')">⚠️</button>
+                <input id="largoManual" style="display:none;">
+            </div>
+        </div>
+
+        <label>Ancho</label>
+        <div>
+            <div class="fila-config">
+                <select id="anchoSelect"></select>
+                <button type="button" onclick="activarEspecial('ancho')">⚠️</button>
+                <input id="anchoManual" style="display:none;">
+            </div>
+        </div>
+
+        <label>Alto</label>
+        <div>
+            <div class="fila-config">
+                <select id="altoSelect"></select>
+                <button type="button" onclick="activarEspecial('alto')">⚠️</button>
+                <input id="altoManual" style="display:none;">
+            </div>
+        </div>
+
+        <label>Accesorios</label>
+        <input id="c_accesorios">
+
+        <label>Cantidad</label>
+        <input id="c_cantidad" type="number" value="1" min="1">
+
+        <button onclick="confirmarProducto()">Confirmar</button>
+        <button onclick="cerrarConfig()">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL FINAL -->
+<div id="modalFinal" class="modal">
+    <div class="modal-content">
+        <h3>Finalizar Pedido</h3>
+
+        <input id="cliente" placeholder="Cliente">
+        <input id="numero" placeholder="N° Pedido">
+        <input id="consultora" placeholder="Consultora">
+
+        <button onclick="guardarPedido()">Guardar</button>
+        <button onclick="cerrarModalFinal()">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL ELIMINAR PEDIDO -->
+<div id="modalEliminar" class="modal">
+    <div class="modal-content">
+        <h3>Eliminar Pedido</h3>
+
+        <p>Ingrese contraseña para confirmar:</p>
+
+        <input type="password" id="passEliminar" placeholder="Contraseña">
+
+        <button onclick="confirmarEliminar()">Eliminar</button>
+        <button onclick="cerrarModalEliminar()">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL VER PEDIDO -->
+<div id="modalVerPedido" class="modal">
+    <div class="modal-content">
+        <h3>Detalle del Pedido</h3>
+        <div id="detallePedido" class="productos"></div>
+        <button onclick="cerrarModalVerPedido()">Cerrar</button>
+    </div>
+</div>
+
+<div id="modalPago" class="modal">
+    <div class="modal-content">
+        <h3>Pago de Pedido</h3>
+
+        <label>Método de pago</label>
+        <select id="metodoPago" onchange="toggleImagen()">
+            <option>TRANSFERENCIA BANCARIA</option>
+            <option>YAPE</option>
+            <option>PLIN</option>
+            <option>PAGO EN LINEA</option>
+        </select>
+
+        <div id="contenedorImagen">
+            <input type="file" id="imagenPago" accept="image/*" onchange="previewImagen()">
+            <img id="previewPago" style="width:100%; margin-top:10px; display:none;">
+        </div>
+
+        <button onclick="confirmarPago()">Confirmar</button>
+        <button onclick="cerrarModalPago()">Cancelar</button>
+    </div>
+</div>
+
+<!-- JSON -->
+<script id="productos-data" type="application/json">
+{{ productos | tojson }}
+</script>
+<script id="colores-data" type="application/json">
+{{ colores | tojson }}
+</script>
+
+<script>
+const productosData = JSON.parse(document.getElementById("productos-data").textContent);
+const coloresData = JSON.parse(document.getElementById("colores-data").textContent);
+
+let editandoProducto = null;
+let editandoColor = null;
+let carrito = [];
+let pedidoAEliminar = null;
+let productoActual = null;
+
+
+let toastContainer = document.querySelector(".toast-container");
+
+if (!toastContainer) {
+    toastContainer = document.createElement("div");
+    toastContainer.className = "toast-container";
+    document.body.appendChild(toastContainer);
+}
+
+const formColor = document.querySelector("#modalColor form");
+
+formColor.addEventListener("submit", function(e){
+    if(editandoColor !== null){
+        e.target.action = "/editar_color/" + editandoColor;
+    }
+});
+
+// EVENTOS
+document.addEventListener("click", function(e){
+    if(e.target.classList.contains("btn-agregar")){
+        const index = e.target.getAttribute("data-index");
+        abrirConfig(parseInt(index));
+    }
+
+    if(e.target.classList.contains("tab")){
+        cambiarTab(e.target.dataset.tab);
+    }
+
+    if(e.target.classList.contains("btn-editar")){
+        const index = e.target.getAttribute("data-index");
+        editarProducto(parseInt(index));
+    }
+
+    if(e.target.classList.contains("btn-editar-color")){
+        const index = e.target.getAttribute("data-index");
+        editarColor(parseInt(index));
+    }
+});
+
+document.getElementById("tipoEntrega").addEventListener("change", actualizarPreview);
+
+// CONFIG PRODUCTO
+function abrirConfig(index){
+    const p = productosData[index];
+    productoActual = p;
+
+    tituloProducto.innerText = p.nombre;
+
+    // 🔥 RESET TODO
+    c_cantidad.value = 1;
+    c_accesorios.value = p.accesorios || "";
+
+    // RESET ESPECIAL
+    resetEspecial("largo");
+    resetEspecial("ancho");
+    resetEspecial("alto");
+
+    // 🔥 COMPATIBILIDAD CON PRODUCTOS ANTIGUOS
+    if(!p.largo_min && p.largo){
+        p.largo_min = p.largo;
+        p.largo_max = p.largo;
+        p.ancho_min = p.ancho;
+        p.ancho_max = p.ancho;
+        p.alto_min = p.alto;
+        p.alto_max = p.alto;
+    }
+
+    // 🔥 LLENAR SELECTS
+    llenarSelect("largoSelect", generarMedidas(p.largo_min, p.largo_max));
+    llenarSelect("anchoSelect", generarMedidas(p.ancho_min, p.ancho_max));
+    llenarSelect("altoSelect", generarMedidas(p.alto_min, p.alto_max));
+
+    // COLORES
+    c_tablero.innerHTML = coloresData.map(c => 
+        `<option value="${c.nombre}" data-clas="${c.clasificacion}">${c.nombre}</option>`
+    ).join("");
+
+    c_estructura.innerHTML = coloresData.map(c => 
+        `<option value="${c.nombre}" data-clas="${c.clasificacion}">${c.nombre}</option>`
+    ).join("");
+
+    modalConfig.style.display = "flex";
+}
+
+
+function mostrarToast(mensaje, tipo = "success") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${tipo}`;
+    toast.innerText = mensaje;
+
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => toast.classList.add("show"), 100);
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}   
+
+
+function editarColor(index){
+    fetch("/obtener_colores")
+    .then(r => r.json())
+    .then(data => {
+        const c = data[index];
+
+        document.querySelector("#modalColor input[name='nombre']").value = c.nombre;
+        document.querySelector("#modalColor select[name='clasificacion']").value = c.clasificacion;
+
+        document.querySelector("#modalColor").style.display = "flex";
+
+        // 🔥 guardamos índice global
+        window.editandoColor = index;
+    });
+}
+
+function cerrarModalColor(){
+    document.getElementById("modalColor").style.display = "none";
+    document.querySelector("#modalColor form").reset();
+    window.editandoColor = null;
+}
+
+function eliminarPedido(i){
+    pedidoAEliminar = i;
+    passEliminar.value = "";
+    modalEliminar.style.display = "flex";
+
+    setTimeout(()=> passEliminar.focus(), 100);
+}
+
+function cerrarConfig(){
+    modalConfig.style.display = "none";
+}
+
+function generarMedidas(min, max){
+    let arr = [];
+
+    min = parseInt(min);
+    max = parseInt(max);
+
+    if (isNaN(min) || isNaN(max)) return [];
+
+    for(let i = min; i <= max; i += 50){
+        arr.push(i);
+    }
+
+    return arr;
+}
+
+function confirmarEliminar(){
+    const pass = passEliminar.value;
+
+    if(pass !== "PEVISO"){
+        alert("❌ Contraseña incorrecta");
+        return;
+    }
+
+    fetch("/eliminar_pedido",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ index: pedidoAEliminar })
+    })
+    .then(()=>{
+        cerrarModalEliminar();
+        cargarHistorial();
+    });
+}
+
+function llenarSelect(id, valores){
+    const select = document.getElementById(id);
+
+    if(valores.length === 0){
+        select.innerHTML = `<option value="">Sin datos</option>`;
+        return;
+    }
+
+    select.innerHTML = valores.map(v =>
+        `<option value="${v}">${v} mm</option>`
+    ).join("");
+}
+
+function activarEspecial(tipo){
+    const select = document.getElementById(tipo + "Select");
+    const input = document.getElementById(tipo + "Manual");
+
+    // 🔁 TOGGLE
+    if(input.style.display === "none" || input.style.display === ""){
+        select.style.display = "none";
+        input.style.display = "block";
+        input.value = "";
+    } else {
+        select.style.display = "block";
+        input.style.display = "none";
+    }
+}
+
+function resetEspecial(tipo){
+    const select = document.getElementById(tipo + "Select");
+    const input = document.getElementById(tipo + "Manual");
+
+    select.style.display = "block";
+    input.style.display = "none";
+    input.value = "";
+}
+
+function editarProducto(i){
+    const p = productosData[i];
+    editandoProducto = i;
+
+    document.querySelector("[name=nombre]").value = p.nombre;
+    document.querySelector("[name=largo_min]").value = p.largo_min || "";
+    document.querySelector("[name=largo_max]").value = p.largo_max || "";
+    document.querySelector("[name=ancho_min]").value = p.ancho_min || "";
+    document.querySelector("[name=ancho_max]").value = p.ancho_max || "";
+    document.querySelector("[name=alto_min]").value = p.alto_min || "";
+    document.querySelector("[name=alto_max]").value = p.alto_max || "";
+    document.querySelector("[name=accesorios]").value = p.accesorios || "";
+
+    modalProducto.style.display = "flex";
+}
+
+function resetPedido(){
+    // 🛒 limpiar carrito
+    carrito = [];
+    renderCarrito();
+
+    // 🧾 limpiar formulario final
+    cliente.value = "";
+    numero.value = "";
+    consultora.value = "";
+
+    // 🧠 limpiar variables
+    productoActual = null;
+
+    // 🔒 cerrar modales por seguridad
+    cerrarModalFinal();
+    cerrarConfig();
+
+    // 🔄 reset selects especiales por si acaso
+    ["largo","ancho","alto"].forEach(resetEspecial);
+}
+
+function obtenerValor(tipo){
+    const m=document.getElementById(tipo+"Manual");
+
+    if(m.style.display!=="none" && m.value){
+        return {valor:parseInt(m.value), especial:true};
+    }
+
+    return {
+        valor:parseInt(document.getElementById(tipo+"Select").value),
+        especial:false
+    };
+}
+
+
+// 🔥 LÓGICA FINAL LIMPIA
+function confirmarProducto(){
+    const cantidad = parseInt(c_cantidad.value) || 1;
+
+    const largo = obtenerValor("largo");
+    const ancho = obtenerValor("ancho");
+    const alto = obtenerValor("alto");
+
+    let esEspecial =
+        c_tablero.selectedOptions[0].dataset.clas === "Especial" ||
+        c_estructura.selectedOptions[0].dataset.clas === "Especial" ||
+        largo.especial || ancho.especial || alto.especial;
+
+    carrito.push({
+        nombre: productoActual.nombre,
+        tipo: esEspecial ? "Especial" : "Estandar",
+        cantidad: cantidad,
+
+        medidas: {
+            largo: largo.valor || "-",
+            ancho: ancho.valor || "-",
+            alto: alto.valor || "-"
+        },
+
+        accesorios: c_accesorios.value
+            ? c_accesorios.value.split(",").map(a => a.trim())
+            : []
+    });
+
+    renderCarrito();
+    cerrarConfig();
+}
+
+// CARRITO
+function renderCarrito(){
+    const carritoDiv = document.getElementById("carrito");
+    const btnFinalizar = document.getElementById("btnFinalizar");
+
+    carritoDiv.innerHTML = carrito.map((p,i)=>`
+        <div class="item-carrito">
+            <span class="${p.tipo==='Especial'?'especial':''}">
+                ${p.nombre} (${p.tipo}) x${p.cantidad}
+            </span>
+            <button onclick="eliminar(${i})">✖</button>
+        </div>
+    `).join("");
+
+    // 🔥 CONTROL DEL BOTÓN
+    if(carrito.length === 0){
+        btnFinalizar.disabled = true;
+        btnFinalizar.classList.add("btn-disabled");
+    } else {
+        btnFinalizar.disabled = false;
+        btnFinalizar.classList.remove("btn-disabled");
+    }
+}
+
+function eliminar(i){
+    carrito.splice(i,1);
+    renderCarrito();
+}
+
+let pedidoSeleccionado = null;
+let imagenBase64 = "";
+
+// ABRIR MODAL
+function abrirModalPago(i){
+    pedidoSeleccionado = i;
+    modalPago.style.display = "flex";
+}
+
+function tieneEspecial(productos){
+    return productos.some(p => p.tipo === "Especial");
+}
+
+function calcularFechaEntrega(tipo, productos){
+    let fecha = new Date();
+
+    if(tipo === "express"){
+        fecha.setDate(fecha.getDate() + 1);
+        return fecha;
+    }
+
+    if(tieneEspecial(productos)){
+        let dias = 0;
+        while(dias < 6){
+            fecha.setDate(fecha.getDate() + 1);
+            if(fecha.getDay() !== 0 && fecha.getDay() !== 6){
+                dias++;
+            }
+        }
+    } else {
+        fecha.setDate(fecha.getDate() + 3);
+    }
+
+    return fecha;
+}
+
+function actualizarPreview(){
+    const tipo = document.getElementById("tipoEntrega").value;
+
+    let fecha = calcularFechaEntrega(tipo, carrito);
+
+    const hoy = new Date().toLocaleDateString();
+    const entrega = fecha.toLocaleDateString();
+
+    document.getElementById("fechaEntrega").valueAsDate = fecha;
+
+    document.getElementById("previewFecha").innerHTML = `
+        <div class="hoy">Hoy: ${hoy}</div>
+        <div class="entrega">Entrega: ${entrega}</div>
+    `;
+}
+
+// CERRAR
+function cerrarModalPago(){
+    modalPago.style.display = "none";
+}
+
+// OCULTAR INPUT SI ES ONLINE
+function toggleImagen(){
+    const metodo = metodoPago.value;
+    contenedorImagen.style.display = metodo === "PAGO EN LINEA" ? "none" : "block";
+}
+
+// PREVIEW IMAGEN
+function previewImagen(){
+    const file = imagenPago.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+        previewPago.src = e.target.result;
+        previewPago.style.display = "block";
+        imagenBase64 = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// CONFIRMAR PAGO
+function confirmarPago(){
+    fetch("/registrar_pago",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            index: pedidoSeleccionado,
+            metodo: metodoPago.value,
+            imagen: imagenBase64
+        })
+    }).then(()=>{
+        cerrarModalPago();
+        cargarHistorial();
+    });
+}
+
+// ENVIAR CORREO
+function enviarCorreo(i){
+    fetch("/enviar_correo",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ index: i })
+    })
+    .then(async res => {
+        const data = await res.json();
+
+        if(!res.ok){
+            throw data;
+        }
+
+        return data;
+    })
+    .then(()=>{
+        alert("✅ Correo enviado correctamente");
+        cargarHistorial();
+    })
+    .catch(err=>{
+        console.error("ERROR:", err);
+        alert("❌ " + (err.error || JSON.stringify(err)));
+    });
+}
+
+// MODALES
+function abrirModalProducto(){ modalProducto.style.display="flex"; }
+function cerrarModalProducto(){ modalProducto.style.display="none"; }
+
+function abrirModalColor(){ modalColor.style.display="flex"; }
+function cerrarModalColor(){ modalColor.style.display="none"; }
+
+function abrirModalFinal(){
+
+    if(carrito.length === 0){
+        // 🔥 USAR MODAL EN VEZ DE ALERT
+        mostrarToast("⚠️ No hay productos en el carrito", "error");
+        return;
+    }
+
+    // 🔥 RESET REAL
+    document.getElementById("cliente").value = "";
+    document.getElementById("numero").value = "";
+    document.getElementById("consultora").value = "";
+
+    document.getElementById("modalFinal").style.display = "flex";
+}
+function cerrarModalFinal(){ modalFinal.style.display="none"; }
+
+function abrirModalVerPedido(productos) {
+    const cont = document.getElementById("detallePedido");
+
+    cont.innerHTML = productos.map(p => `
+        <div class="card ${p.tipo==='Especial'?'especial':''}">
+            
+            <h3>${p.nombre}</h3>
+
+            <p><b>Cantidad:</b> ${p.cantidad}</p>
+            <p><b>Tipo:</b> ${p.tipo || "Normal"}</p>
+
+            <p><b>Medidas:</b><br>
+                Largo: ${p.medidas?.largo || "-"} mm<br>
+                Ancho: ${p.medidas?.ancho || "-"} mm<br>
+                Alto: ${p.medidas?.alto || "-"} mm
+            </p>
+
+            <p><b>Accesorios:</b><br>
+                ${p.accesorios?.length 
+                    ? p.accesorios.join(", ") 
+                    : "Ninguno"}
+            </p>
+
+        </div>
+    `).join("");
+
+    document.getElementById("modalVerPedido").style.display = "flex";
+}
+
+
+function cerrarModalVerPedido() {
+    document.getElementById("modalVerPedido").style.display = "none";
+}
+
+function cerrarModalEliminar(){
+    modalEliminar.style.display = "none";
+    pedidoAEliminar = null;
+}
+
+// HISTORIAL
+function cargarHistorial(){
+    fetch("/obtener_pedidos")
+    .then(r=>r.json())
+    .then(data=>{
+        historial.innerHTML = data.map((p,i)=>`
+            <li>
+                #${p.numero} - ${p.cliente}
+
+                <button onclick="verPedido(${i})">👁</button>
+
+                <button 
+                    class="btn-pago ${p.pagado ? 'btn-disabled' : ''}" 
+                    onclick="abrirModalPago(${i})"
+                    ${p.pagado ? 'disabled' : ''}
+                >💰</button>
+
+                <button 
+                    class="btn-correo ${p.enviado ? 'btn-disabled' : ''}" 
+                    onclick="abrirModalEntrega(${i})"
+                    ${p.enviado ? 'disabled' : ''}
+                >📧</button>
+
+                <!-- 🔥 AQUÍ -->
+                <button class="btn-eliminar" onclick="eliminarPedido(${i})">🗑</button>
+
+                ${p.enviado ? '<span class="badge-enviado">Enviado</span>' : ''}
+            </li>
+        `).join("");
+    });
+}
+
+function abrirModalEntrega(index){
+    pedidoSeleccionado = index;
+    document.getElementById("modalEntrega").style.display = "flex";
+    actualizarPreview();
+}
+
+function confirmarEntrega(){
+    const fecha = document.getElementById("fechaEntrega").value;
+    const tipo = document.getElementById("tipoEntrega").value;
+
+    if(!fecha){
+        mostrarToast("⚠️ Selecciona una fecha", "error");
+        return;
+    }
+
+    fetch("/set_fecha_entrega", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            index: pedidoSeleccionado,
+            fecha: fecha,
+            tipo: tipo
+        })
+    })
+    .then(res => {
+        if(!res.ok){
+            throw new Error("Error guardando fecha");
+        }
+        return res.json();
+    })
+    .then(() => {
+        // 🔥 RECIÉN AQUÍ enviamos el correo
+        return fetch("/enviar_correo",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({ index: pedidoSeleccionado })
+        });
+    })
+    .then(res => {
+        if(!res.ok){
+            throw new Error("Error enviando correo");
+        }
+
+        // 🔥 TODO OK
+        document.getElementById("modalEntrega").style.display = "none";
+
+        mostrarToast("📧 Correo enviado correctamente", "success");
+
+        cargarHistorial(); // 🔥 ACTUALIZA BOTÓN A VERDE / DESACTIVADO
+    })
+    .catch(err=>{
+        console.error(err);
+        mostrarToast("❌ Error en el proceso", "error");
+    });
+}
+
+function verPedido(i){
+    fetch("/obtener_pedidos")
+    .then(r=>r.json())
+    .then(data=>{
+        const p = data[i];
+        abrirModalVerPedido(p.productos);
+    });
+}
+
+// GUARDAR PEDIDO
+function guardarPedido(){
+
+    // 🚫 carrito vacío
+    if(carrito.length === 0){
+        alert("⚠️ Debes agregar al menos un producto");
+        return;
+    }
+
+    // 🚫 campos vacíos
+    if(!cliente.value || !numero.value){
+        alert("⚠️ Completa cliente y número de pedido");
+        return;
+    }
+
+    fetch("/guardar_pedido",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            cliente:cliente.value,
+            numero:numero.value,
+            consultora:consultora.value,
+            productos:carrito
+        })
+    })
+    .then(async res=>{
+        const data = await res.json();
+
+        if(!res.ok){
+            throw data;
+        }
+
+        resetPedido();
+        cargarHistorial();
+    })
+    .catch(err=>{
+        alert("❌ " + (err.error || JSON.stringify(err)));
+    });
+}
+
+// TABS
+function cambiarTab(tab){
+    document.querySelectorAll(".contenido").forEach(c=>c.style.display="none");
+    document.getElementById(tab).style.display="block";
+
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+
+    const carritoDiv = document.querySelector(".carrito");
+    carritoDiv.style.display = (tab === "pedidos") ? "block" : "none";
+
+    // 🔥 AGREGA ESTO
+    if(tab === "control"){
+        renderControl();
+    }
+}
+
+function agregarAlCarrito(producto) {
+    const item = {
+        nombre: producto.nombre,
+        cantidad: 1,
+        tipo: esEspecial ? "Especial" : "Estandar",
+
+        largo: document.getElementById("largo").value,
+        ancho: document.getElementById("ancho").value,
+        alto: document.getElementById("alto").value,
+
+        accesorios: obtenerAccesoriosSeleccionados()
+    };
+
+    carrito.push(item);
+}
+
+function renderControl(){
+    fetch("/obtener_pedidos")
+    .then(res => res.json())
+    .then(data => {
+
+        let html = "";
+
+        data.forEach((p, i) => {
+
+            if(!p.fecha_entrega) return;
+
+            let claseExpress = (p.tipo_entrega || "").toLowerCase() === "express"
+                ? "pedido-express"
+                : "";
+
+            html += `
+                <div class="card ${claseExpress}">
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <h3>Pedido ${p.numero}</h3>
+                        <button class="btn-ojo" onclick="verPedido(${i})">👁</button>
+                    </div>
+
+                    <p><b>Entrega:</b> ${p.fecha_entrega}</p>
+
+                    ${p.productos.map(prod=>`
+                        <div>- ${prod.nombre} x${prod.cantidad}</div>
+                    `).join("")}
+
+                </div>
+            `;
+        });
+
+        document.getElementById("controlPedidos").innerHTML = html;
+    })
+    .catch(err => {
+        console.error("ERROR CONTROL:", err);
+    });
+}
+
+window.onload = cargarHistorial;
+
+</script>
+
+<div id="toast" class="toast"></div>
+
+<audio id="sound-success" src="/static/sounds/success.mp3"></audio>
+<audio id="sound-error" src="/static/sounds/error.mp3"></audio>
+<audio id="sound-info" src="/static/sounds/info.mp3"></audio>
+
+</body>
+</html>
