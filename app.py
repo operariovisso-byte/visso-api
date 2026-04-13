@@ -68,7 +68,10 @@ cargar_datos()
 # -------------------------
 @app.route("/")
 def index():
-    return render_template("index.html", productos=productos, colores=colores)
+    return jsonify({
+        "status": "API funcionando",
+        "pedidos": len(pedidos)
+    })
 
 # -------------------------
 # PRODUCTOS (🔥 CON RANGOS)
