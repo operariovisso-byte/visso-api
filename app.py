@@ -4,8 +4,8 @@ import base64
 import os
 import tempfile
 import json
-import pythoncom
-import win32com.client as win32
+#import pythoncom
+#import win32com.client as win32
 
 app = Flask(__name__)
 CORS(app)
